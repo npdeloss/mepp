@@ -8,13 +8,13 @@ Installation
 ------------
 To install MEPP, use pip:
 
-.. code-block:: bash
+Pip::
   pip install git+https://github.com/npdeloss/mepp@main
 
 Usage
 -----
 
-.. code-block:: bash
+Command line help::
     Usage: mepp [OPTIONS]
 
   Profile positional enrichment of motifs in a list of scored sequences.
