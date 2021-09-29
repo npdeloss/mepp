@@ -19,6 +19,7 @@ requirements = [
     'MOODS-python>=1.9.4',
     'numpy>=1.19',
     'pandas>=1.1.5',
+    'jinja2>=2.11.3',
     'PyYAML>=5.4.1',
     'scikit-image>=0.17.2',
     'scipy>=1.5.3',
