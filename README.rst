@@ -2,24 +2,6 @@
 Motif Enrichment Positional Profiling
 =====================================
 
-
-.. image:: https://img.shields.io/pypi/v/mepp.svg
-        :target: https://pypi.python.org/pypi/mepp
-
-.. image:: https://img.shields.io/travis/npdeloss/mepp.svg
-        :target: https://travis-ci.com/npdeloss/mepp
-
-.. image:: https://readthedocs.org/projects/mepp/badge/?version=latest
-        :target: https://mepp.readthedocs.io/en/latest/?version=latest
-        :alt: Documentation Status
-
-
-.. image:: https://pyup.io/repos/github/npdeloss/mepp/shield.svg
-     :target: https://pyup.io/repos/github/npdeloss/mepp/
-     :alt: Updates
-
-
-
 Motif Enrichment Positional Profiling (MEPP) quantifies a positional profile of motif enrichment along the length of DNA sequences centered on e.g. transcription start sites or transcription factor binding motifs.
 
 Command line help::
@@ -164,17 +146,10 @@ Command line help::
 
 
 * Free software: MIT license
-* Documentation: https://mepp.readthedocs.io.
-
-
-Features
---------
-
-* TODO
 
 Credits
 -------
-
+This package was developed in the `lab of Christopher Benner at UCSD <http://homer.ucsd.edu/BennerLab/>`.
 This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
