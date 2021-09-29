@@ -6,13 +6,15 @@ Motif Enrichment Positional Profiling (MEPP) quantifies a positional profile of 
 
 Installation
 ------------
-To install MEPP, use pip::
+To install MEPP, use pip:
+
+.. code-block::
   pip install git+https://github.com/npdeloss/mepp@main
 
 Usage
 -----
 
-Command line help::
+.. code-block::
     Usage: mepp [OPTIONS]
 
   Profile positional enrichment of motifs in a list of scored sequences.
