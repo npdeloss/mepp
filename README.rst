@@ -18,6 +18,7 @@ Usage
 -----
 
 Command line help::
+    
     Usage: mepp [OPTIONS]
 
   Profile positional enrichment of motifs in a list of scored sequences.
