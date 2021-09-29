@@ -149,8 +149,8 @@ Command line help::
 
 Credits
 -------
-This package was developed in the `lab of Christopher Benner at UCSD <http://homer.ucsd.edu/BennerLab/>`.
-This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
+- This package was developed in the `lab of Christopher Benner at UCSD <http://homer.ucsd.edu/BennerLab/>`_.
+- This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypackage`_ project template.
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
