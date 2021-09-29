@@ -25,8 +25,8 @@ Motif Enrichment Positional Profiling (MEPP) quantifies a positional profile of 
 Command line help::
     Usage: mepp [OPTIONS]
 
-      Profile positional enrichment of motifs in a list of scored sequences.
-      Generated MEPP (Motif Enrichment Positional Profile) plots.
+  Profile positional enrichment of motifs in a list of scored sequences.
+  Generated MEPP (Motif Enrichment Positional Profile) plots.
 
     Options:
       --fa TEXT                       Path to a scored fasta file, where sequence
@@ -39,6 +39,10 @@ Command line help::
                                       [required]
       --out TEXT                      Create this directory and write output to
                                       it.  [required]
+      --center INTEGER                0-based offset from the start of the
+                                      sequence to center plots on. Default: Set
+                                      the center to half the sequence length,
+                                      rounded down
       --dgt INTEGER                   Percentage of sequence that can be
                                       degenerate (Not A, C, G, or T) before being
                                       rejected from the analysis. Useful for
@@ -51,6 +55,9 @@ Command line help::
                                       Default: 1000
       --jobs INTEGER                  Number of jobs for CPU multiprocessing.
                                       Default: Use all cores
+      --keepdata                      Set this flag to keep the Tensorflow dataset
+                                      after MEPP has finished. Default: Delete the
+                                      dataset after MEPP has finished.
       --orientations TEXT             Comma-separated list of motif orientations
                                       to analyze for CPU multiprocessing. Values
                                       in list are limited to "+" (Match motif
@@ -68,6 +75,8 @@ Command line help::
                                       motif match threshold via MOODS, represented
                                       as a series of 4 floats. Default: 0.25 0.25
                                       0.25 0.25
+      --ci FLOAT                      Confidence interval for positional profile,
+                                      expressed as a percentage. Default: 95.0
       --sigma FLOAT                   Adaptive scale for brightness of motif
                                       matches in motif heatmaps. Maximum
                                       brightness is achieved at sigma * std, where
@@ -75,6 +84,13 @@ Command line help::
                                       motif match scores. Set lower for brighter
                                       pixels. Must be a positive value. Default:
                                       0.5
+      --cmap TEXT                     Name of a matplotlib colormap. Used to color
+                                      the central MEPP motif heatmap. Possible
+                                      values can be viewed using
+                                      matplotlib.pylot.colormaps() or at https://m
+                                      atplotlib.org/stable/tutorials/colors/colorm
+                                      aps.html . Default: gray_r. Set to gray to
+                                      invert colors (black background).
       --smoothing INTEGER             Factor by which to smooth motif density
                                       along ranks for visualization. This is
                                       multiplicative to smoothing that already
@@ -91,8 +107,19 @@ Command line help::
       --gjobs INTEGER                 Number of jobs for GPU multiprocessing.
                                       NOTE: Set this carefully to avoid jobs
                                       crowding each other out of GPU memory,
-                                      causing profile generation to fail. Default:
-                                      1
+                                      causing profile generation to fail. If
+                                      setting --nogpu, this will be the number of
+                                      jobs used to process motifs in parallel.
+                                      Default: 1
+      --nogpu                         Disable use of GPU. If setting --nogpu,
+                                      --gjobs will be the number of jobs used to
+                                      process motifs in parallel.
+      --attempts INTEGER              Number of attempts to retry making a plot.
+                                      Default: 10
+      --minwait FLOAT                 Minimum wait between attempts to make a
+                                      plot, in seconds. Default: 1.0
+      --maxwait FLOAT                 Maximum wait between attempts to make a
+                                      plot, in seconds. Default: 1.0
       --cmethod [average|single|complete|centroid|median|ward|weighted]
                                       Clustering method for clustering MEPP
                                       profiles. For details, see "method"
@@ -116,7 +143,7 @@ Command line help::
                                       in the clustering table.For details, see
                                       "method" parameter of
                                       statsmodels.stats.multitest.multipletests.
-                                      Default: fdr_tsbky
+                                      Default: fdr_by
       --mtalpha FLOAT                 Alpha (FWER, family-wise error rate) for
                                       adjusting p-values of positional
                                       correlations listed in the clustering
@@ -134,6 +161,7 @@ Command line help::
                                       for.Default: Thorough multiple testing is
                                       enabled
       --help                          Show this message and exit.
+
 
 * Free software: MIT license
 * Documentation: https://mepp.readthedocs.io.
