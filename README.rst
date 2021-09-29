@@ -4,6 +4,14 @@ Motif Enrichment Positional Profiling
 
 Motif Enrichment Positional Profiling (MEPP) quantifies a positional profile of motif enrichment along the length of DNA sequences centered on e.g. transcription start sites or transcription factor binding motifs.
 
+Installation
+------------
+To install MEPP, use pip::
+  pip install git+https://github.com/npdeloss/mepp@main
+
+Usage
+-----
+
 Command line help::
     Usage: mepp [OPTIONS]
 
@@ -53,7 +61,7 @@ Command line help::
                                       threshold via MOODS. Default: 0.0001
       --pval FLOAT                    P-value for setting motif match threshold
                                       via MOODS. Default: 0.0001
-      --bg FLOAT...                   Background DNA composition, for setting
+      --bg FLOATS                     Background DNA composition, for setting
                                       motif match threshold via MOODS, represented
                                       as a series of 4 floats. Default: 0.25 0.25
                                       0.25 0.25
@@ -102,14 +110,12 @@ Command line help::
                                       plot, in seconds. Default: 1.0
       --maxwait FLOAT                 Maximum wait between attempts to make a
                                       plot, in seconds. Default: 1.0
-      --cmethod [average|single|complete|centroid|median|ward|weighted]
-                                      Clustering method for clustering MEPP
+      --cmethod METHOD                Clustering method for clustering MEPP
                                       profiles. For details, see "method"
                                       parameter of
                                       scipy.cluster.hierarchy.linkage. Default:
                                       average
-      --cmetric [correlation|euclidean|minkowski|cityblock|seuclidean|sqeuclidean|cosine|jensenshannon|chebyshev|canberra|braycurtis|mahalanobis]
-                                      Clustering metric for clustering MEPP
+      --cmetric METRIC                Clustering metric for clustering MEPP
                                       profiles. For details, see "metric"
                                       parameter of
                                       scipy.cluster.hierarchy.linkage. Default:
@@ -119,8 +125,7 @@ Command line help::
       --tformat [png|svg]             Format of inline plots for clustering table.
                                       Use png for speed, svg for publication
                                       quality. Default: png
-      --mtmethod [fdr_tsbky|bonferroni|sidak|holm-sidak|holm|simes-hochberg|hommel|fdr_bh|fdr_by|fdr_tsbh]
-                                      Multiple testing method for adjusting
+      --mtmethod METHOD               Multiple testing method for adjusting
                                       p-values of positional correlations listed
                                       in the clustering table.For details, see
                                       "method" parameter of
