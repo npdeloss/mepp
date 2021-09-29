@@ -10,6 +10,10 @@ To install MEPP, use pip::
     
     pip install git+https://github.com/npdeloss/mepp@main
 
+Or, if you only have user privileges::
+    
+    pip install git+https://github.com/npdeloss/mepp@main --user
+
 You may need to append the following to your ~/.bashrc::
     
     export PATH="$HOME/.local/bin:$PATH"
