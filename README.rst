@@ -6,10 +6,10 @@ Motif Enrichment Positional Profiling (MEPP) quantifies a positional profile of 
 
 Installation
 ------------
-To install MEPP, use pip ::
+To install MEPP, use pip::
     pip install git+https://github.com/npdeloss/mepp@main
 
-You may need to append the following to your ~/.bashrc ::
+You may need to append the following to your ~/.bashrc::
     export PATH="$HOME/.local/bin:$PATH"
 
 Usage
