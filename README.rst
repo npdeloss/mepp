@@ -8,11 +8,11 @@ Installation
 ------------
 To install MEPP, use pip:
 .. code-block:: none
-  pip install git+https://github.com/npdeloss/mepp@main
+    pip install git+https://github.com/npdeloss/mepp@main
 
 You may need to append the following to your ~/.bashrc:
 .. code-block:: none
-  export PATH="$HOME/.local/bin:$PATH"
+    export PATH="$HOME/.local/bin:$PATH"
 
 Usage
 -----
