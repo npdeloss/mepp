@@ -22,7 +22,7 @@ Usage
 -----
 
 Motif files for use with this program can be found in the data subdirectory.
-These are motifs from the `HOMER<http://homer.ucsd.edu/homer/>`_ suite in data/homer.motifs.txt, as well as a reduced-redundancy version with similar motifs clustered, allowing a faster analysis.
+These are motifs from the `HOMER <http://homer.ucsd.edu/homer/>`_ suite in data/homer.motifs.txt, as well as a reduced-redundancy version with similar motifs clustered, allowing a faster analysis.
 
 Command line help::
     
