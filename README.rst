@@ -21,6 +21,9 @@ You may need to append the following to your ~/.bashrc::
 Usage
 -----
 
+Motif files for use with this program can be found in the data subdirectory.
+These are motifs from the `HOMER<http://homer.ucsd.edu/homer/>`_ suite in data/homer.motifs.txt, as well as a reduced-redundancy version with similar motifs clustered, allowing a faster analysis.
+
 Command line help::
     
     Usage: mepp [OPTIONS]
@@ -33,7 +36,7 @@ Command line help::
                                       headers are of the form: ">sequence_name
                                       sequence_score".  [required]
       --motifs TEXT                   Path to a motif matrices file in JASPAR
-                                      format.As a start, one can be obtained
+                                      format. As a start, one can be obtained
                                       through the JASPAR website at:
                                       http://jaspar.genereg.net/downloads/
                                       [required]
