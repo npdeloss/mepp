@@ -122,6 +122,10 @@ def run_batch(
     ]
 
     if n_jobs > 1:
+        n_jobs_ = n_jobs
+        if no_gpu:
+            # no_gpu mode still uses 2 threads per plot
+            n_jobs_= n_jobs//2
         param_and_log_filepaths = Parallel(n_jobs = n_jobs)(
             delayed(wrap_single)(
                 **wrap_single_param

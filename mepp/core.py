@@ -218,9 +218,12 @@ def get_positional_correlation_from_processed_dataset(
     if control_gc:
         sum_xz = tf.zeros(output_shape)
         sum_yz = tf.zeros(output_shape)
-
+    printed_first = False
     for data in processed_dataset:
         motif_scores, expanded_scores = data[:2]
+        if printed_first == False:
+            print(motif_scores.shape)
+            printed_first = True
 
         if control_gc:
             gc_ratios = data[2]

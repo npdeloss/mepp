@@ -31,6 +31,9 @@ from .onehot_dna import (
 
 def force_cpu_only():
     tf.config.set_visible_devices([], 'GPU')
+    tf.config.threading.set_intra_op_parallelism_threads(2)
+    tf.config.threading.set_inter_op_parallelism_threads(2)
+
 
 def manage_gpu_memory(device_index = None):
     physical_devices = tf.config.list_physical_devices('GPU')
