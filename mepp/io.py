@@ -7,6 +7,8 @@ import numpy as np
 
 from tqdm import tqdm
 
+import click
+
 import tensorflow as tf
 
 import Bio.motifs.jaspar as jaspar
@@ -85,7 +87,8 @@ def scored_fasta_filepath_to_dicts(
     fasta_filepath,
     **kwargs
 ):
-    with open(fasta_filepath) as fasta_file:
+    # with open(fasta_filepath) as fasta_file:
+    with click.open_file(fasta_filepath) as fasta_file:
         return scored_fasta_file_to_dicts(
             fasta_file,
             **kwargs

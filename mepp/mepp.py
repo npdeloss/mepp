@@ -74,6 +74,7 @@ def run_mepp(
     # Save parameters
     save_datasets = False,
     save_profile_data = True,
+    # Save/Don't save big motif score matrix AKA raw heatmap
     save_motif_score_matrix = False,
     keep_dataset = False,
     # Retry parameters

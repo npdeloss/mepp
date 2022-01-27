@@ -7,6 +7,7 @@ __version__ = '0.1.0'
 import sys
 
 from .cli import main
+from .get_scored_fasta import main as getfasta
 
 if __name__ == "__main__":
     sys.exit(main())  # pragma: no cover

@@ -49,6 +49,8 @@ setup(
     entry_points={
         'console_scripts': [
             'mepp=mepp.cli:main',
+            'mepp_run_single=mepp.single:run_single',
+            'getscoredfasta=mepp.get_scored_fasta:main'
         ],
     },
     install_requires=requirements,

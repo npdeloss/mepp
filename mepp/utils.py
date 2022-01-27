@@ -30,9 +30,12 @@ from .onehot_dna import (
 )
 
 def force_cpu_only():
+    print('Switching to CPU-only.')
     tf.config.set_visible_devices([], 'GPU')
     tf.config.threading.set_intra_op_parallelism_threads(2)
-    tf.config.threading.set_inter_op_parallelism_threads(2)
+    print(f'Intra-op threads: {tf.config.threading.get_intra_op_parallelism_threads()}')
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    print(f'Inter-op threads: {tf.config.threading.get_inter_op_parallelism_threads()}')
 
 
 def manage_gpu_memory(device_index = None):

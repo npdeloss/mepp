@@ -125,7 +125,12 @@ def run_batch(
         n_jobs_ = n_jobs
         if no_gpu:
             # no_gpu mode still uses 2 threads per plot
+            print(
+                'Halving per-motif jobs for CPU-only operation.'
+                'Two threads per MEPP plot will still be used.'
+            )
             n_jobs_= n_jobs//2
+            print(f'Number of per_motif jobs: {n_jobs_}')
         param_and_log_filepaths = Parallel(n_jobs = n_jobs)(
             delayed(wrap_single)(
                 **wrap_single_param
