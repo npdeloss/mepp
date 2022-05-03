@@ -338,14 +338,22 @@ def filepaths_df_to_profile_dicts(
         (filepaths_df['retval'] == 0)
     ].copy()
 
-    motif_id_to_profile_df = (
+    motif_id_to_profile_df_ = (
         filepaths_df
         .copy()
         .set_index('motif_id')['positions_df_filepath']
         .map(normpath)
         .map(pd.read_pickle)
     ).to_dict()
-
+    
+    
+    motif_id_to_profile_df = {
+        k:v
+        for k,v 
+        in motif_id_to_profile_df_.items()
+        if v['positional_r'].fillna(0.0).abs().sum()>0.0
+    }
+    
     motif_id_to_profile = {
         motif_id: list(df['positional_r'])
         for motif_id, df
