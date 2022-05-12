@@ -63,6 +63,7 @@ def fig_to_bitmap_data_uri(
         f'data:image/{data_uri_format};'
         f'base64,{base64_str}'
     )
+
 def motif_matrix_to_logo_data_uri(
     motif_matrix,
     ax = None,

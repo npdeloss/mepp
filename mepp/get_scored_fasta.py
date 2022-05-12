@@ -1,3 +1,4 @@
+"""Helper script for converting bed files to scored fasta files."""
 import sys
 
 import pandas as pd

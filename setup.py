@@ -50,7 +50,9 @@ setup(
         'console_scripts': [
             'mepp=mepp.cli:main',
             'mepp_run_single=mepp.single:run_single',
-            'getscoredfasta=mepp.get_scored_fasta:main'
+            'getscoredfasta=mepp.get_scored_fasta:main',
+            'learnmotifs=mepp.learn_motifs:main',
+            'comparemotifs=mepp.compare_motifs:main'
         ],
     },
     install_requires=requirements,
@@ -66,3 +68,4 @@ setup(
     version='0.0.1',
     zip_safe=False,
 )
+

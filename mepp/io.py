@@ -26,7 +26,7 @@ def motif_matrix_file_to_dicts(
     )
 
     motif_matrix_dict = {
-        f'{motif.matrix_id} {motif.name}':
+        f'{motif.matrix_id} {motif.name}' if motif.matrix_id != motif.name else motif.matrix_id:
         np.array([
             list(motif.pwm[nuc])
             for nuc

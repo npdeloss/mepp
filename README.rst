@@ -163,6 +163,82 @@ Command line help::
       --help                          Show this message and exit.
 
 
+Motif discovery
+-----
+Command line help::
+
+    Usage: python -m mepp.learn_motifs [OPTIONS]
+
+    Options:
+      --fa TEXT                       Path to a scored fasta file, where sequence
+                                      headers are of the form: ">sequence_name
+                                      sequence_score".  [required]
+      --out TEXT                      Create this directory and write output to
+                                      it.  [required]
+      --dgt FLOAT                     Percentage of sequence that can be
+                                      degenerate (Not A, C, G, or T) before being
+                                      rejected from the analysis. Useful for
+                                      filtering out repeats. Default: 100
+      --batch INTEGER                 Size of batches for Tensorflow datasets.
+                                      Default: 1000
+      --val FLOAT                     Fraction of data used for validation.
+                                      Default: 0.10
+      --motifs INTEGER                Number of motifs to learn. Default: 320
+      --length INTEGER                Length of motifs to learn. Default: 8
+      --motif-prefix TEXT             Prefix motif names with this string.Default:
+                                      denovo_motif_
+      --model [deepbindlike|simpleconv]
+                                      Type of network to use for learning motifs.
+                                      Default: deepbindlike
+      --seed INTEGER                  Random seed for shuffling and
+                                      initialization. Default: 1000
+      --epochs INTEGER                Maximum number of epochs for training.
+                                      Default: 1000
+      --no-early-stopping             Disable early stopping of training, to train
+                                      for the maximum number of epochs. Default:
+                                      Enable early stopping.
+      --patience INTEGER              Number of epochs to wait for early stopping.
+                                      Default: 1000
+      --mindelta FLOAT                Minimum delta for early stopping. Default: 0
+      --jobs INTEGER                  Number of jobs for CPU multiprocessing.
+                                      Default: Use all cores
+      --nogpu                         Disable use of GPU.
+      --quiet                         Do not write combined motifs to stdout.
+                                      Default: Write combined motifs to stdout.
+      --help                          Show this message and exit.
+
+Motif comparison
+-----
+Command line help::
+
+    Usage: python -m mepp.compare_motifs [OPTIONS]
+
+    Options:
+      --motifs TEXT        Path to a motif matrices file in JASPAR format.
+                           Preferably a denovo motif matrices file. if --known-
+                           motifs is not specified, this will be compared against
+                           itself. As a start, one can be obtained through the
+                           JASPAR website at: http://jaspar.genereg.net/downloads/
+                           [required]
+      --out TEXT           Create this directory and write output to it.
+                           [required]
+      --known-motifs TEXT  Path to a known motif matrices file in JASPAR format.As
+                           a start, one can be obtained through the JASPAR website
+                           at: http://jaspar.genereg.net/downloads/ Default: None
+      --overlap INTEGER    Minimum overlap for correlated motifs. Default: 6
+      --corrcoef FLOAT     Minimum correlation for correlated motifs. Default: 0.6
+      --combine            Combine motifs. Default: Do not combine motifs.
+      --motif-prefix TEXT  Prefix motif names with this string.Default:
+                           combined_motif_
+      --no-logos           Do not render logos. Default: Render logos.
+      --jobs INTEGER       Number of jobs for CPU multiprocessing. Default: Use
+                           all cores
+      --quiet              Do not write combined motifs to stdout. Default: Write
+                           combined motifs to stdout.
+      --help               Show this message and exit.
+
+
+
 * Free software: MIT license
 
 Credits

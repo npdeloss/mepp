@@ -53,8 +53,8 @@ from .mepp import run_mepp
 @click.option(
     '--dgt',
     'degenerate_pct_thresh',
-    type = int,
-    default = 100,
+    type = float,
+    default = 100.0,
     help = (
         'Percentage of sequence that can be degenerate '
         '(Not A, C, G, or T) before being rejected from the analysis. '
@@ -460,7 +460,7 @@ def main(
     out_filepath,
     # Dataset parameters
     center = None,
-    degenerate_pct_thresh = 100,
+    degenerate_pct_thresh = 100.0,
     num_permutations = 1000,
     batch_size = 1000,
     n_cpu_jobs = multiprocessing.cpu_count(),
@@ -497,7 +497,7 @@ def main(
 ):
     """
     Profile positional enrichment of motifs in a list of scored sequences.
-    Generated MEPP (Motif Enrichment Positional Profile) plots.
+    Generates MEPP (Motif Enrichment Positional Profile) plots.
     """
     motif_orientations_ = [
         x.strip()
