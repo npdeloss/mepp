@@ -151,9 +151,118 @@ def generate_simpleconv_model(input_layer, num_motifs = 320, motif_length = 8, s
     model.compile(optimizer='adam', loss='mse', metrics=['mae'])
     return model, conv_model, post_conv_model
 
+def generate_simpleconv_globalmaxpool_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
+    conv_model = keras.Sequential([
+        input_layer,
+        keras.layers.Conv1D(
+            32, 
+            2,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed)
+        ),
+        keras.layers.Conv1D(
+            num_motifs, 
+            motif_length-1,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1)
+        )
+    ])
+    post_conv_model = keras.Sequential([
+        input_layer,
+        conv_model
+    ])
+    
+#     flatten = keras.layers.Flatten()
+#     dense = keras.layers.Dense(
+#         1,
+#         activation='tanh',
+#         kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+#     )
+
+    model = keras.Sequential([
+        input_layer,
+        post_conv_model,
+        keras.layers.GlobalMaxPool1D()
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model, conv_model, post_conv_model
+
+def generate_simpleconv_globalmaxpool_dense_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
+    conv_model = keras.Sequential([
+        input_layer,
+        keras.layers.Conv1D(
+            32, 
+            2,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed)
+        ),
+        keras.layers.Conv1D(
+            num_motifs, 
+            motif_length-1,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1)
+        )
+    ])
+    post_conv_model = keras.Sequential([
+        input_layer,
+        conv_model
+    ])
+    
+#     flatten = keras.layers.Flatten()
+    dense = keras.layers.Dense(
+        1,
+        activation='tanh',
+        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+    )
+
+    model = keras.Sequential([
+        input_layer,
+        post_conv_model,
+        keras.layers.GlobalMaxPool1D(),
+        dense
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model, conv_model, post_conv_model
+
+def generate_simpleconv_globalmaxpool_dropout_dense_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
+    conv_model = keras.Sequential([
+        input_layer,
+        keras.layers.Conv1D(
+            32, 
+            2,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed)
+        ),
+        keras.layers.Conv1D(
+            num_motifs, 
+            motif_length-1,activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1)
+        )
+    ])
+    post_conv_model = keras.Sequential([
+        input_layer,
+        conv_model
+    ])
+    
+#     flatten = keras.layers.Flatten()
+    dense = keras.layers.Dense(
+        1,
+        activation='tanh',
+        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+    )
+
+    model = keras.Sequential([
+        input_layer,
+        post_conv_model,
+        keras.layers.GlobalMaxPool1D(),
+        keras.layers.Dropout(0.5),
+        dense
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    return model, conv_model, post_conv_model
+
+
 model_generation_by_model_type = {
     'deepbindlike': generate_deepbind_model,
-    'simpleconv': generate_simpleconv_model
+    'simpleconv': generate_simpleconv_model,
+    'simpleconv_gmp': generate_simpleconv_globalmaxpool_model,
+    'simpleconv_gmp_dense': generate_simpleconv_globalmaxpool_dense_model,
+    'simpleconv_gmp_dropout_dense': generate_simpleconv_globalmaxpool_dropout_dense_model,
 }
 
 @tf.autograph.experimental.do_not_convert
@@ -383,7 +492,10 @@ def motif_matrix_dict_to_file(motif_matrix_dict, f):
     type = click.Choice(
         [
             'deepbindlike',
-            'simpleconv'
+            'simpleconv',
+            'simpleconv_gmp',
+            'simpleconv_gmp_dense',
+            'simpleconv_gmp_dropout_dense',
         ],
         case_sensitive =  False
     ),
@@ -632,6 +744,19 @@ def main(
         motif_length, 
         seed
     )
+    
+    # Get model output dimensions
+    num_model_output_dims = len(list(model.layers[-1].output_shape))
+    num_score_dims = len(list(scores.shape))
+    
+    # Match model output dimensions
+    for i in list(range(num_model_output_dims-num_score_dims)):
+        validation_dataset = validation_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
+        training_dataset = training_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
+    
+    
+    validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE).cache()
+    training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE).cache()
     
     # Train model
     callbacks = [
