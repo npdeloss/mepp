@@ -22,7 +22,7 @@ Usage
 -----
 
 Motif files for use with this program can be found in the data subdirectory.
-These are motifs from the `HOMER <http://homer.ucsd.edu/homer/>`_ suite in data/homer.motifs.txt, as well as a reduced-redundancy version with similar motifs clustered, allowing a faster analysis. To get started, see our `walkthrough notebook`<https://github.com/npdeloss/mepp/blob/main/notebooks/Walkthrough_Motif_Centered_BigWig_Scored_Analysis.ipynb>_.
+These are motifs from the `HOMER <http://homer.ucsd.edu/homer/>`_ suite in data/homer.motifs.txt, as well as a reduced-redundancy version with similar motifs clustered, allowing a faster analysis. To get started, see our `walkthrough notebook<notebooks/Walkthrough_Motif_Centered_BigWig_Scored_Analysis.ipynb>`_.
 
 Command line help::
     
