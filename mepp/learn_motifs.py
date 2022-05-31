@@ -7,6 +7,8 @@ import multiprocessing
 
 from os.path import normpath
 
+from contextlib import redirect_stdout
+
 import pandas as pd
 import numpy as np
 
@@ -103,7 +105,7 @@ def generate_deepbind_model(input_layer, num_motifs = 320, motif_length = 8, see
     flatten = keras.layers.Flatten()
     dense = keras.layers.Dense(
         1,
-        activation='tanh',
+        activation='linear',
         kernel_initializer = keras.initializers.GlorotUniform(seed=seed+3)
     )
 
@@ -113,7 +115,7 @@ def generate_deepbind_model(input_layer, num_motifs = 320, motif_length = 8, see
         flatten,
         dense
     ])
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
 def generate_simpleconv_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
@@ -138,8 +140,9 @@ def generate_simpleconv_model(input_layer, num_motifs = 320, motif_length = 8, s
     flatten = keras.layers.Flatten()
     dense = keras.layers.Dense(
         1,
-        activation='tanh',
-        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+        activation='linear',
+        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2),
+        kernel_regularizer = 'l1_l2'
     )
 
     model = keras.Sequential([
@@ -148,7 +151,7 @@ def generate_simpleconv_model(input_layer, num_motifs = 320, motif_length = 8, s
         flatten,
         dense
     ])
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
 def generate_simpleconv_globalmaxpool_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
@@ -173,7 +176,7 @@ def generate_simpleconv_globalmaxpool_model(input_layer, num_motifs = 320, motif
 #     flatten = keras.layers.Flatten()
 #     dense = keras.layers.Dense(
 #         1,
-#         activation='tanh',
+#         activation='linear',
 #         kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
 #     )
 
@@ -182,7 +185,52 @@ def generate_simpleconv_globalmaxpool_model(input_layer, num_motifs = 320, motif
         post_conv_model,
         keras.layers.GlobalMaxPool1D()
     ])
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
+    return model, conv_model, post_conv_model
+
+def generate_simpleconv_globalmaxpool_alt_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
+    conv_model = keras.Sequential([
+        input_layer,
+        keras.layers.Conv1D(
+            32, 
+            2,
+            activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed)
+        ),
+        keras.layers.Conv1D(
+            num_motifs, 
+            motif_length-1,
+            activation='relu', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1)
+        )
+    ])
+    post_conv_model = keras.Sequential([
+        input_layer,
+        conv_model
+    ])
+    
+#     flatten = keras.layers.Flatten()
+#     dense = keras.layers.Dense(
+#         1,
+#         activation='linear',
+#         kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+#     )
+
+    model = keras.Sequential([
+        input_layer,
+        post_conv_model,
+        keras.layers.GlobalMaxPool1D(keepdims = True),
+        keras.layers.Conv1D(
+            num_motifs, 
+            1,
+            groups=num_motifs,
+            activation='linear', 
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2),
+            kernel_regularizer = 'l1_l2'
+        ),
+        keras.layers.Flatten()
+    ])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
 def generate_simpleconv_globalmaxpool_dense_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
@@ -207,8 +255,9 @@ def generate_simpleconv_globalmaxpool_dense_model(input_layer, num_motifs = 320,
 #     flatten = keras.layers.Flatten()
     dense = keras.layers.Dense(
         1,
-        activation='tanh',
-        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+        activation='linear',
+        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2),
+        kernel_regularizer = 'l1_l2'
     )
 
     model = keras.Sequential([
@@ -217,7 +266,7 @@ def generate_simpleconv_globalmaxpool_dense_model(input_layer, num_motifs = 320,
         keras.layers.GlobalMaxPool1D(),
         dense
     ])
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
 def generate_simpleconv_globalmaxpool_dropout_dense_model(input_layer, num_motifs = 320, motif_length = 8, seed = 10):
@@ -242,8 +291,9 @@ def generate_simpleconv_globalmaxpool_dropout_dense_model(input_layer, num_motif
 #     flatten = keras.layers.Flatten()
     dense = keras.layers.Dense(
         1,
-        activation='tanh',
-        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2)
+        activation='linear',
+        kernel_initializer = keras.initializers.GlorotUniform(seed=seed+2),
+        kernel_regularizer = 'l1_l2'
     )
 
     model = keras.Sequential([
@@ -253,7 +303,7 @@ def generate_simpleconv_globalmaxpool_dropout_dense_model(input_layer, num_motif
         keras.layers.Dropout(0.5),
         dense
     ])
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
 
@@ -261,6 +311,7 @@ model_generation_by_model_type = {
     'deepbindlike': generate_deepbind_model,
     'simpleconv': generate_simpleconv_model,
     'simpleconv_gmp': generate_simpleconv_globalmaxpool_model,
+    'simpleconv_gmp_alt': generate_simpleconv_globalmaxpool_alt_model,
     'simpleconv_gmp_dense': generate_simpleconv_globalmaxpool_dense_model,
     'simpleconv_gmp_dropout_dense': generate_simpleconv_globalmaxpool_dropout_dense_model,
 }
@@ -375,7 +426,7 @@ def filter_motifs_by_information_content(motifs, information_matrices, min_infor
         motif
         for motif, info_content
         in zip(motifs, max_info_contents)
-        if info_content > min_information_content
+        if ((info_content > min_information_content)&(np.isnan(np.sum(motif))==False))
     ])
 
 def motifs_to_dict(motifs, motif_prefix = 'denovo_motif_'):
@@ -490,13 +541,7 @@ def motif_matrix_dict_to_file(motif_matrix_dict, f):
     '--model',
     'model_type',
     type = click.Choice(
-        [
-            'deepbindlike',
-            'simpleconv',
-            'simpleconv_gmp',
-            'simpleconv_gmp_dense',
-            'simpleconv_gmp_dropout_dense',
-        ],
+        list(model_generation_by_model_type.keys()),
         case_sensitive =  False
     ),
     default = 'deepbindlike',
@@ -612,237 +657,262 @@ def main(
     no_gpu = False,
     quiet = False
 ):
-    # Setup output
+    with redirect_stdout(sys.stderr):
+        # Setup output
 
-    filtered_data_df_tsv_filepath = normpath(f'{out_filepath}/filtered_data_df.tsv')
-    filtered_data_df_pkl_filepath = normpath(f'{out_filepath}/filtered_data_df.pkl')
-    dataset_filepath = normpath(f'{out_filepath}/dataset')
+        filtered_data_df_tsv_filepath = normpath(f'{out_filepath}/filtered_data_df.tsv')
+        filtered_data_df_pkl_filepath = normpath(f'{out_filepath}/filtered_data_df.pkl')
+        dataset_filepath = normpath(f'{out_filepath}/dataset')
 
-    os.makedirs(
-        normpath(out_filepath), 
-        exist_ok = True
-    )
+        os.makedirs(
+            normpath(out_filepath), 
+            exist_ok = True
+        )
 
-    os.makedirs(
-        dataset_filepath,
-        exist_ok = True
-    )
-    
-    # Manage GPU memory usage
+        os.makedirs(
+            dataset_filepath,
+            exist_ok = True
+        )
 
-    if no_gpu:
-        force_cpu_only()
-    else:
-        manage_gpu_memory()
+        # Manage GPU memory usage
+
+        if no_gpu:
+            force_cpu_only()
+        else:
+            manage_gpu_memory()
+
+        # Load scored sequence data
+        (
+            sequence_dict,
+            score_dict,
+            description_dict
+        ) = scored_fasta_filepath_to_dicts(scored_fasta_filepath)
+
+        # Filter and sort sequence data
+        scored_fasta_df = order_scored_fasta_df(
+            filter_scored_fasta_df(
+                scored_fasta_dicts_to_df(
+                    sequence_dict,
+                    score_dict,
+                    description_dict
+                ),
+                degenerate_pct_thresh = degenerate_pct_thresh
+            )
+        )
+        # Normalize scores
+        scored_fasta_df['original_score'] = scored_fasta_df['score']
         
-    # Load scored sequence data
-    (
-        sequence_dict,
-        score_dict,
-        description_dict
-    ) = scored_fasta_filepath_to_dicts(scored_fasta_filepath)
+        scored_fasta_df['z_score'] = (
+            (scored_fasta_df['original_score'] - scored_fasta_df['original_score'].mean()) /
+            (scored_fasta_df['original_score'].std())
+        )
+        
+        scored_fasta_df['score'] = scored_fasta_df['z_score']
+        
+        # Write filtered data to file
+        scored_fasta_df.to_csv(
+            filtered_data_df_tsv_filepath,
+            sep = '\t',
+            index = False
+        )
+        
+        scored_fasta_df.to_pickle(filtered_data_df_pkl_filepath)
 
-    # Filter and sort sequence data
-    scored_fasta_df = order_scored_fasta_df(
-        filter_scored_fasta_df(
-            scored_fasta_dicts_to_df(
-                sequence_dict,
-                score_dict,
-                description_dict
+        # Pad to meet batch size
+        scored_fasta_df_padding = (
+            scored_fasta_df.sample(
+                n = (batch_size - scored_fasta_df.shape[0]%batch_size), 
+                random_state = seed
+            )
+            .copy()
+        )
+        padded_scored_fasta_df = (
+            pd.concat([
+                scored_fasta_df, 
+                scored_fasta_df_padding
+            ])
+            .sample(frac = 1.0, random_state = seed)
+            .copy()
+            .reset_index()
+        )
+
+        # Get validation and training batch amounts
+        num_batches = padded_scored_fasta_df.shape[0]//batch_size
+        num_validation_batches = np.max([int(np.round(validation_fraction * num_batches)), 1])
+        num_training_batches = num_batches - num_validation_batches
+        
+
+        print(f'{num_validation_batches} validation batches')
+        print(f'{num_training_batches} training batches')
+        
+        if np.min([num_validation_batches, num_training_batches]) < 1:
+            print(
+                (
+                    'Not enough batches to have validation and training datasets. '
+                    'Re-run analysis with a smaller batch size.'
+                ),
+                file = sys.stderr
+            )
+        
+        # Create dataset
+        original_dataset = scored_fasta_df_to_dataset(
+            padded_scored_fasta_df,
+            batch_size = batch_size,
+            n_jobs = 1
+        )
+
+        revcomp_augmented_dataset = revcomp_augment_dataset(
+            original_dataset, 
+            batch_size = batch_size, 
+            random_seed = seed
+        )
+        dataset_rev = revcomp_dataset(
+            revcomp_augmented_dataset, 
+            batch_size = batch_size
+        )
+        dataset = (
+            revcomp_augmented_dataset
+            .concatenate(dataset_rev)
+            .prefetch(tf.data.AUTOTUNE)
+            .cache()
+        )
+
+        # Save dataset
+        save_dataset(dataset, dataset_filepath)
+
+        # Split dataset into validation and training
+        validation_dataset = (
+            reformat_dataset(load_dataset(dataset_filepath))
+            .take(num_validation_batches) 
+        )
+        training_dataset = (
+            reformat_dataset(load_dataset(dataset_filepath))
+            .skip(num_validation_batches)
+        )
+
+        # Determine input layer properties
+        sequences, scores = (
+            reformat_dataset(load_dataset(dataset_filepath))
+            .take(1)
+            .get_single_element()
+        )
+        input_layer = (
+            keras.layers.Input(
+                type_spec = tf.TensorSpec.from_tensor(sequences)
+            )
+        )
+
+        # Generate model
+
+        generate_model = model_generation_by_model_type[model_type]
+        model_name = f'{model_type}_seed_{seed}_{num_motifs}_motifs_{motif_length}bp'
+        model, conv_model, post_conv_model = generate_model(
+            input_layer, 
+            num_motifs, 
+            motif_length, 
+            seed
+        )
+
+        # Get model output dimensions
+        num_model_output_dims = len(list(model.layers[-1].output_shape))
+        num_score_dims = len(list(scores.shape))
+
+        # Match model output dimensions
+        for i in list(range(num_model_output_dims-num_score_dims)):
+            validation_dataset = validation_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
+            training_dataset = training_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
+
+
+        validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE).cache()
+        training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE).cache()
+
+        # Train model
+        callbacks = [
+            keras.callbacks.experimental.BackupAndRestore(
+                normpath(f'{out_filepath}/{model_name}.model_backups/')
             ),
-            degenerate_pct_thresh = degenerate_pct_thresh
-        )
-    )
-    
-    # Write filtered data to file
-    scored_fasta_df.to_csv(
-        filtered_data_df_tsv_filepath,
-        sep = '\t',
-        index = False
-    )
+            keras.callbacks.ModelCheckpoint(
+                normpath(f'{out_filepath}/{model_name}.model_checkpoints/')
+            ),
+            keras.callbacks.CSVLogger(
+                normpath(f'{out_filepath}/{model_name}.training_log.csv')
+            )
+        ]
 
-    scored_fasta_df.to_pickle(filtered_data_df_pkl_filepath)
-    
-    # Pad to meet batch size
-    scored_fasta_df_padding = (
-        scored_fasta_df.sample(
-            n = (batch_size - scored_fasta_df.shape[0]%batch_size), 
-            random_state = seed
+        if early_stopping:
+            print('Training with early stopping', file = sys.stderr )
+            callbacks.append(keras.callbacks.EarlyStopping(
+                patience = early_stopping_patience, 
+                min_delta = early_stopping_min_delta
+            ))
+
+
+        print('Training model', file = sys.stderr )
+        model.fit(
+            training_dataset,
+            epochs=epochs,
+            validation_data=validation_dataset,
+            callbacks=callbacks,
+            verbose = 'auto',
         )
-        .copy()
-    )
-    padded_scored_fasta_df = (
-        pd.concat([
-            scored_fasta_df, 
-            scored_fasta_df_padding
+
+        # Extract motifs
+        print('Extracting motifs', file = sys.stderr )
+        motifs_, information_matrices = amplify_motifs(
+            extract_motifs(conv_model, dataset, n_jobs = n_jobs)
+        )
+        motifs = filter_motifs_by_information_content(
+            motifs_, 
+            information_matrices, 
+            min_information_content = 0.0
+        )
+
+        # Format motifs
+        motif_matrix_dict = motifs_to_dict(motifs, motif_prefix)
+
+        # Write motifs to file
+        print('Writing motifs', file = sys.stderr )
+        denovo_motifs_filepath = normpath(
+            f'{out_filepath}/{model_name}.denovo_motifs.txt'
+        )
+
+        with open(denovo_motifs_filepath, 'w') as f:
+            motif_matrix_dict_to_file(motif_matrix_dict, f)
+    
+    with redirect_stdout(sys.stdout):
+        if quiet == False:
+            with open(denovo_motifs_filepath) as f:
+                print(f.read(), file = sys.stdout)
+    
+    with redirect_stdout(sys.stderr):
+        # Write motif logos to file
+        print('Writing motif logos', file = sys.stderr )
+        motif_matrix_df = get_logo_df(motif_matrix_dict, n_jobs = n_jobs)
+        denovo_motifs_html_filepath = normpath(
+            f'{out_filepath}/{model_name}.denovo_motifs.html'
+        )
+
+        denovo_motifs_logo_filepath = normpath(
+            f'{out_filepath}/{model_name}.denovo_motifs.pkl'
+        )
+
+        header_include_html = '\n'.join([
+            '<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/css/bootstrap.min.css"/>'
+            '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/js/bootstrap.bundle.min.js"></script>'
+
         ])
-        .sample(frac = 1.0, random_state = seed)
-        .copy()
-        .reset_index()
-    )
-    
-    # Get validation and training batch amounts
-    num_batches = padded_scored_fasta_df.shape[0]//batch_size
-    num_validation_batches = np.min([int(np.round(validation_fraction * num_batches)), 1])
-    num_training_batches = num_batches - num_validation_batches
-    
-    # Create dataset
-    original_dataset = scored_fasta_df_to_dataset(
-        padded_scored_fasta_df,
-        batch_size = batch_size,
-        n_jobs = 1
-    )
-    
-    revcomp_augmented_dataset = revcomp_augment_dataset(
-        original_dataset, 
-        batch_size = batch_size, 
-        random_seed = seed
-    )
-    dataset_rev = revcomp_dataset(
-        revcomp_augmented_dataset, 
-        batch_size = batch_size
-    )
-    dataset = (
-        revcomp_augmented_dataset
-        .concatenate(dataset_rev)
-        .prefetch(tf.data.AUTOTUNE)
-        .cache()
-    )
-    
-    # Save dataset
-    save_dataset(dataset, dataset_filepath)
-    
-    # Split dataset into validation and training
-    validation_dataset = (
-        reformat_dataset(load_dataset(dataset_filepath))
-        .take(num_validation_batches) 
-    )
-    training_dataset = (
-        reformat_dataset(load_dataset(dataset_filepath))
-        .skip(num_validation_batches)
-    )
-    
-    # Determine input layer properties
-    sequences, scores = (
-        reformat_dataset(load_dataset(dataset_filepath))
-        .take(1)
-        .get_single_element()
-    )
-    input_layer = (
-        keras.layers.Input(
-            type_spec = tf.TensorSpec.from_tensor(sequences)
+        title = f'Logos for {denovo_motifs_filepath}'
+        head_html = f'<meta charset="UTF-8"><title>{title}</title>{header_include_html}'
+        html = (
+            f'''<!DOCTYPE html><head>{head_html}</head>'''
+            f'''<body>{motif_matrix_df.style.render()}</body></html>'''
+            f'\n'
         )
-    )
-    
-    # Generate model
-    
-    generate_model = model_generation_by_model_type[model_type]
-    model_name = f'{model_type}_seed_{seed}_{num_motifs}_motifs_{motif_length}bp'
-    model, conv_model, post_conv_model = generate_model(
-        input_layer, 
-        num_motifs, 
-        motif_length, 
-        seed
-    )
-    
-    # Get model output dimensions
-    num_model_output_dims = len(list(model.layers[-1].output_shape))
-    num_score_dims = len(list(scores.shape))
-    
-    # Match model output dimensions
-    for i in list(range(num_model_output_dims-num_score_dims)):
-        validation_dataset = validation_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
-        training_dataset = training_dataset.map(lambda sequence, score: (sequence, tf.expand_dims(score, -1)), num_parallel_calls=tf.data.AUTOTUNE)
-    
-    
-    validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE).cache()
-    training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE).cache()
-    
-    # Train model
-    callbacks = [
-        keras.callbacks.experimental.BackupAndRestore(
-            normpath(f'{out_filepath}/{model_name}.model_backups/')
-        ),
-        keras.callbacks.ModelCheckpoint(
-            normpath(f'{out_filepath}/{model_name}.model_checkpoints/')
-        ),
-        keras.callbacks.CSVLogger(
-            normpath(f'{out_filepath}/{model_name}.training_log.csv')
-        )
-    ]
-    
-    if early_stopping:
-        print('Training with early stopping', file = sys.stderr )
-        callbacks.append(keras.callbacks.EarlyStopping(
-            patience = early_stopping_patience, 
-            min_delta = early_stopping_min_delta
-        ))
-    
-    
-    print('Training model', file = sys.stderr )
-    model.fit(
-        training_dataset,
-        epochs=epochs,
-        validation_data=validation_dataset,
-        callbacks=callbacks,
-        verbose = 0,
-    )
-    
-    # Extract motifs
-    print('Extracting motifs', file = sys.stderr )
-    motifs_, information_matrices = amplify_motifs(
-        extract_motifs(conv_model, dataset, n_jobs = n_jobs)
-    )
-    motifs = filter_motifs_by_information_content(
-        motifs_, 
-        information_matrices, 
-        min_information_content = 0.0
-    )
-    
-    # Format motifs
-    motif_matrix_dict = motifs_to_dict(motifs, motif_prefix)
-    
-    # Write motifs to file
-    print('Writing motifs', file = sys.stderr )
-    denovo_motifs_filepath = normpath(
-        f'{out_filepath}/{model_name}.denovo_motifs.txt'
-    )
-    
-    with open(denovo_motifs_filepath, 'w') as f:
-        motif_matrix_dict_to_file(motif_matrix_dict, f)
-    
-    if quiet == False:
-        with open(denovo_motifs_filepath) as f:
-            print(f.read())
-    
-    # Write motif logos to file
-    print('Writing motif logos', file = sys.stderr )
-    motif_matrix_df = get_logo_df(motif_matrix_dict, n_jobs = n_jobs)
-    denovo_motifs_html_filepath = normpath(
-        f'{out_filepath}/{model_name}.denovo_motifs.html'
-    )
-    
-    denovo_motifs_logo_filepath = normpath(
-        f'{out_filepath}/{model_name}.denovo_motifs.pkl'
-    )
-    
-    header_include_html = '\n'.join([
-        '<link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/css/bootstrap.min.css"/>'
-        '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/5.0.1/js/bootstrap.bundle.min.js"></script>'
-    
-    ])
-    title = f'Logos for {denovo_motifs_filepath}'
-    head_html = f'<meta charset="UTF-8"><title>{title}</title>{header_include_html}'
-    html = (
-        f'''<!DOCTYPE html><head>{head_html}</head>'''
-        f'''<body>{motif_matrix_df.style.render()}</body></html>'''
-        f'\n'
-    )
-    
-    with open(denovo_motifs_html_filepath, 'w') as f:
-        f.write(html)
-    
-    motif_matrix_df.to_pickle(denovo_motifs_logo_filepath)
+
+        with open(denovo_motifs_html_filepath, 'w') as f:
+            f.write(html)
+
+        motif_matrix_df.to_pickle(denovo_motifs_logo_filepath)
     
     return 0
 

@@ -545,6 +545,9 @@ def main(
             with open(combined_motifs_filepath) as f:
                 print(f.read())
 
+    results_pkl_filepath = normpath(f'{out_filepath}/motif_comparison.pkl')
+    filtered_known_and_denovo_alignment_results_df.to_pickle(results_pkl_filepath)
+    
     
     html = get_interactive_table_html(
         filtered_known_and_denovo_alignment_results_display_df,
