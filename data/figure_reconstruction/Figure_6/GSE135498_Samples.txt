@@ -1,0 +1,9 @@
+Sample Name	Sample Title	Original Sample Title
+GSM4012734	csRNA_notx_rep1	BMDM notx csRNA-seq r1
+GSM4012735	csRNA_notx_rep2	BMDM notx csRNA-seq r2
+GSM4012736	csInput_notx_rep1	BMDM notx csRNAinput r1
+GSM4012737	csInput_notx_rep2	BMDM notx csRNAinput r2
+GSM4012738	csRNA_KLA-1h_rep1	BMDM KLA1h csRNA-seq r1
+GSM4012739	csRNA_KLA-1h_rep2	BMDM KLA1h csRNA-seq r2
+GSM4012740	csInput_KLA-1h_rep1	BMDM KLA1h csRNAinput r1
+GSM4012741	csInput_KLA-1h_rep2	BMDM KLA1h csRNAinput r2
