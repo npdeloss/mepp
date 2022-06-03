@@ -11,7 +11,7 @@ wget -nc -O "$genome_fa".gz "$GENOME_URL"
 zcat "$genome_fa".gz > "$genome_fa"
 
 # Index genome
-samtools faidx "$GENOME_FILEPATH"
+samtools faidx "$genome_fa"
 
 # Download narrowpeak files
 wget -O "GSM4072778_mesc_nanog_nexus.idr-optimal-set.narrowPeak.gz" "https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM4072778&format=file&file=GSM4072778%5Fmesc%5Fnanog%5Fnexus%2Eidr%2Doptimal%2Dset%2EnarrowPeak%2Egz"
