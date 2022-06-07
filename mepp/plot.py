@@ -19,7 +19,13 @@ from .core import (
 from .onehot_dna import alphabet
 
 def get_pixel_dimensions(fig, ax):
-    ax_pixel_bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    ax_pixel_bbox = (
+        ax
+        .get_window_extent()
+        .transformed(
+            fig.dpi_scale_trans.inverted()
+        )
+    )
     pixel_width,pixel_height = ax_pixel_bbox.width*fig.dpi, ax_pixel_bbox.height*fig.dpi
     return pixel_width, pixel_height
 

@@ -317,13 +317,51 @@ model_generation_by_model_type = {
 }
 
 @tf.autograph.experimental.do_not_convert
-def get_activations(conv_model, sequences, scores):
-    activations = conv_model(sequences, training = False)
-    max_idxs = keras.backend.argmax(activations,axis = 1)
-    max_vals = keras.backend.max(activations,axis = 1)
+def get_activations(conv_model, sequences, scores, unstranded = False):
+    fwd_sequences = sequences
+    fwd_activations = conv_model(fwd_sequences, training = False)
+    fwd_max_idxs = keras.backend.argmax(fwd_activations,axis = 1)
+    fwd_max_vals = keras.backend.max(fwd_activations,axis = 1)
+    
+    if unstranded:
+        rev_sequences = sequences[:,::-1,::-1]
+        rev_activations = conv_model(rev_sequences, training = False)
+        rev_max_idxs = keras.backend.argmax(rev_activations,axis = 1)
+        rev_max_vals = keras.backend.max(rev_activations,axis = 1)
+        
+        fwd_or_rev = fwd_max_vals >= rev_max_vals
+        
+        sequences_ = tf.where(
+            fwd_or_rev,
+            fwd_sequences,
+            rev_sequences
+        )
+        activations = tf.where(
+            fwd_or_rev,
+            fwd_activations,
+            rev_activations
+        )
+        max_idxs = tf.where(
+            fwd_or_rev,
+            fwd_max_idxs,
+            rev_max_idxs
+        )
+        max_vals = tf.where(
+            fwd_or_rev,
+            fwd_max_vals,
+            rev_max_vals
+        )
+        
+    else:
+        sequences_ = fwd_sequences
+        activations = fwd_activations
+        max_idxs = fwd_max_idxs
+        max_vals = fwd_max_vals
+        
+    
     return (
         # sequences
-        sequences, 
+        sequences_, 
         # activations
         activations,
         # maximum activation indices
@@ -363,11 +401,20 @@ def get_weighted_subsequence_sums(
     
     return weighted_subsequence_sums
 
-def extract_motifs(conv_model, dataset, n_jobs = multiprocessing.cpu_count()):
+def extract_motifs(
+    conv_model, dataset, 
+    n_jobs = multiprocessing.cpu_count(), 
+    unstranded = False
+):
     dataset_activations = (
         dataset
         .map(
-            lambda sequences, scores: get_activations(conv_model, sequences, scores),
+            lambda sequences, scores: get_activations(
+                conv_model, 
+                sequences, 
+                scores, 
+                unstranded = unstranded
+            ),
         )
     )
 
@@ -386,7 +433,7 @@ def extract_motifs(conv_model, dataset, n_jobs = multiprocessing.cpu_count()):
             max_vals
         in tqdm(dataset_activations)
     ), axis = 0)
-
+    
     eps = np.finfo(weighted_subsequence_sums.dtype).eps
     motifs =  (weighted_subsequence_sums+eps) / (np.sum(weighted_subsequence_sums, axis = -1, keepdims = True)+eps)
     return motifs
