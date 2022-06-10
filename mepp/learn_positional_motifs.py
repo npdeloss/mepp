@@ -484,8 +484,8 @@ def main(
         num_training_batches = num_batches - num_validation_batches
         
 
-        print(f'{num_validation_batches} validation batches')
-        print(f'{num_training_batches} training batches')
+        # print(f'{num_validation_batches} validation batches')
+        # print(f'{num_training_batches} training batches')
         
         if np.min([num_validation_batches, num_training_batches]) < 1:
             print(
@@ -578,7 +578,7 @@ def main(
                 ), 
                 positional_profile
             )
-            .skip(num_validation_batches)
+            # .skip(num_validation_batches)
         )
        
         # Determine input layer properties
@@ -647,6 +647,7 @@ def main(
         if early_stopping:
             print('Training with early stopping', file = sys.stderr )
             callbacks.append(keras.callbacks.EarlyStopping(
+                monitor = 'loss',
                 patience = early_stopping_patience, 
                 min_delta = early_stopping_min_delta
             ))
@@ -656,7 +657,7 @@ def main(
         model.fit(
             training_dataset,
             epochs=epochs,
-            validation_data=validation_dataset,
+            # validation_data=validation_dataset,
             callbacks=callbacks,
             verbose = 'auto',
         )
