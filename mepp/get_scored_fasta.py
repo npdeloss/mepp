@@ -179,7 +179,7 @@ def write_scored_fasta_from_filepaths(
 
 @click.command()
 @click.option(
-    '--bed',
+    '-bed',
     'bed_filepath',
     type = str,
     required = True,
