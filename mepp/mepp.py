@@ -265,6 +265,7 @@ def run_mepp(
     # Generate clustering outputs
     results_html_filepaths = {}
     clustermap_html_filepaths = {}
+    print(f'thorough_mt = {thorough_mt}')
     for motif_orientation in motif_orientations:
         orientation_str = orientation_to_filepath[motif_orientation]
         clustering_results = filepaths_df_to_clustering_results(

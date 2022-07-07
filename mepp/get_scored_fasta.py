@@ -26,7 +26,7 @@ def fasta_filepath_to_dict(
     **kwargs
 ):
     with open(fasta_filepath) as fasta_file:
-        return fasta_file_to_dicts(
+        return fasta_file_to_dict(
             fasta_file,
             **kwargs
         )
@@ -179,7 +179,7 @@ def write_scored_fasta_from_filepaths(
 
 @click.command()
 @click.option(
-    '-bed',
+    '--bed',
     'bed_filepath',
     type = str,
     required = True,

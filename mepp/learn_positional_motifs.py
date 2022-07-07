@@ -20,6 +20,8 @@ from tqdm.auto import tqdm
 
 from logomaker import transform_matrix
 
+from scipy.stats import linregress
+
 from .io import (
     scored_fasta_filepath_to_dicts,
     save_dataset,
@@ -37,6 +39,7 @@ from .utils import (
 from .plot import motif_matrix_to_df
 from .html import get_logo_df
 from .io import motif_matrix_file_to_dicts
+from .io import motif_matrix_filepath_to_dicts
 from .html import motif_matrix_to_logo_data_uri
 
 from .learn_motifs import (
@@ -53,23 +56,167 @@ from .learn_motifs import (
     motif_matrix_dict_to_file
 )
 
-def positionalize_dataset_scores(dataset, positional_profile):
-    return dataset.map(
-        lambda sequences, scores: (
-            sequences, 
-            (
-                tf.expand_dims(
-                    tf.cast(
-                        positional_profile, 
-                        scores.dtype
-                    ), 
-                    axis=0
-                ) * 
-                scores
-            )
-        ),
-        num_parallel_calls=tf.data.AUTOTUNE
+from .io import motif_matrix_filepath_to_dicts
+from .motif_scanning import (
+    scan_motifs_parallel, 
+    format_scan_results
+)
+
+def mask_sequence(sequence, index, length, mask_char = 'N'):
+    return (
+        sequence[:index] + 
+        ''.join([mask_char] * length) +
+        sequence[index+length:]
+    )[:len(sequence)]
+
+def multimask_sequence(
+    sequence, 
+    indices, 
+    lengths, 
+    mask_char = 'N'
+):
+    masked_sequence = sequence
+    for index, length in zip(indices, lengths):
+        masked_sequence = mask_sequence(
+            masked_sequence, 
+            index, 
+            length, 
+            mask_char = mask_char
+        )
+    return masked_sequence
+
+def seq_to_gc(
+    seq, 
+    nuc_to_gc = {
+        'A':0.0,
+        'C':1.0,
+        'G':1.0,
+        'T':0.0,
+        'N':0.25
+    }
+):
+    nuc_to_gc_keys = set(nuc_to_gc.keys())
+    gc = np.sum([
+        nuc_to_gc[nuc] 
+        for nuc 
+        in list(seq) 
+        if nuc in nuc_to_gc_keys
+    ])
+    return gc
+    
+
+def mask_scored_fasta_df(
+    scored_fasta_df,
+    mask_motif_matrix_dict,
+    mask_motif_pseudocount = 0.1,
+    mask_motif_pvalue = 0.001,
+    mask_char = '_',
+    replace = True,
+    n_jobs = 1
+):
+    # Scan for motifs to mask
+    sequences_dict = scored_fasta_df.set_index('sequence_id')['sequence'].to_dict()
+    scan_results_df = format_scan_results(
+        scan_motifs_parallel(
+            mask_motif_matrix_dict,
+            sequences_dict,
+            pseudocount = mask_motif_pvalue,
+            pval = mask_motif_pvalue,
+            n_jobs = n_jobs,
+            progress_wrapper = tqdm
+        )
+    )[0].rename(
+        columns={'peak_id':'sequence_id'}
     )
+    
+    # Calculate length of masked regions
+    mask_motif_length_dict = {
+        k: v.shape[1]
+        for k,v
+        in mask_motif_matrix_dict.items()
+    }
+    scan_results_df['motif_length'] = (
+        scan_results_df['motif_id']
+        .map(mask_motif_length_dict)
+    )
+    
+    masked_sequences_dict = sequences_dict
+    for sequence_id, subset_df in tqdm(scan_results_df.groupby('sequence_id')):
+        num_masked_motifs = subset_df.shape[0]
+        num_unique_masked_motifs = len(set(subset_df['motif_id']))
+        # print(f'Masking {num_masked_motifs} ({num_unique_masked_motifs} unique) motifs from {sequence_id}')
+        indices = list(subset_df['instance_position'])
+        lengths = list(subset_df['motif_length'])
+        sequence = sequences_dict[sequence_id]
+        masked_sequence = multimask_sequence(
+            sequence, 
+            indices, 
+            lengths, 
+            mask_char = mask_char
+        )
+        num_modified_bases = np.sum([1 for a,b in zip(list(sequence),list(masked_sequence)) if a!=b])
+        # print(f'Masked {num_modified_bases} bases')
+        log_vals = [
+            'masking_data',
+            num_masked_motifs,
+            num_unique_masked_motifs,
+            sequence_id,
+            num_modified_bases,
+            len(sequence)
+        ]
+        # print('\t'.join([f'{val}' for val in log_vals]))
+        masked_sequences_dict[sequence_id] = masked_sequence
+    if replace == True:
+        output_col = 'sequence'
+    else:
+        output_col = 'masked_sequence'
+    scored_fasta_df[output_col] = (
+        scored_fasta_df['sequence_id']
+        .map(masked_sequences_dict)
+    )
+    return scored_fasta_df
+    
+
+def positionalize_dataset_scores(dataset, positional_profile):
+    if len(positional_profile.shape) == 2:
+        return dataset.map(
+            lambda sequences, scores: (
+                sequences, 
+                (
+                    tf.expand_dims(
+                        tf.cast(
+                            positional_profile, 
+                            scores.dtype
+                        ), 
+                        axis=0
+                    ) * 
+                    tf.expand_dims(
+                        scores,
+                        axis = -1
+                    )
+                )
+            ),
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+    else:
+        return dataset.map(
+            lambda sequences, scores: (
+                sequences, 
+                (
+                    tf.expand_dims(
+                        tf.cast(
+                            positional_profile, 
+                            scores.dtype
+                        ), 
+                        axis=0
+                    ) * 
+                    scores
+                )
+            ),
+            num_parallel_calls=tf.data.AUTOTUNE
+        )
+
+import math
 
 def generate_positional_conv_model(
     input_layer, 
@@ -89,7 +236,11 @@ def generate_positional_conv_model(
         keras.layers.Conv1D(
             num_motifs, 
             motif_length-1,activation='relu', 
-            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1)
+            kernel_initializer = keras.initializers.GlorotUniform(seed=seed+1),
+            # kernel_regularizer = OrthoRegularizer(
+            #     factor=0.01, 
+            #     mode='rows'
+            # )
         )
     ])
     
@@ -121,6 +272,7 @@ def generate_positional_conv_model(
     post_conv_model = keras.Sequential([
         input_layer,
         chosen_conv_model,
+        keras.layers.Dropout(0.1),
         keras.layers.AveragePooling1D(
             pool_size, 
             strides = 1
@@ -148,6 +300,62 @@ def generate_positional_conv_model(
     model.compile(optimizer='adam', loss='mse', metrics=['mse','mae'])
     return model, conv_model, post_conv_model
 
+
+def convert_masked_seq_with_underscores(seq, alphabet = list('ACGT_')):
+    return ''.join(
+        [
+            nuc if nuc in alphabet else 'N'
+            for nuc
+            in seq
+        ]
+    )
+
+def get_shifted_positional_profiles(
+    profile_df, 
+    num_motifs,
+    offset_start, 
+    offset_end
+):
+    offsets = np.arange(
+        offset_start, 
+        offset_end+1
+    )
+    offset_profile_cols = [
+        f'profile_offset_{offset}' 
+        for offset in offsets
+    ]
+    
+    offsets_and_offset_profile_cols = zip(
+        offsets, 
+        offset_profile_cols
+    )
+    
+    for offset, offset_profile_col in offsets_and_offset_profile_cols:
+        profile_df[offset_profile_col] = (
+            profile_df['profile']
+            .shift(offset)
+            .bfill()
+            .ffill()
+        )
+    total_profile_cols = offset_profile_cols * num_motifs
+    print('\n'.join(total_profile_cols))
+    positional_profiles = (
+        profile_df[total_profile_cols]
+        .values
+    )
+    
+    print('positional_profiles.shape[-1] = {positional_profiles.shape[-1]}')
+    
+    num_shifted_profiles = (
+        len(offset_profile_cols)
+    )
+    
+    return (
+        positional_profiles, 
+        profile_df,
+        num_shifted_profiles,
+        offset_profile_cols
+    )
 
 @click.command()
 # Filepaths
@@ -229,14 +437,34 @@ def generate_positional_conv_model(
         'Default: 1000'
     )
 )
+# @click.option(
+#     '--val',
+#     'validation_fraction',
+#     type = float,
+#     default = 0.10,
+#     help = (
+#         'Fraction of data used for validation. '
+#         'Default: 0.10'
+#     )
+# )
 @click.option(
-    '--val',
-    'validation_fraction',
-    type = float,
-    default = 0.10,
+    '--gc',
+    'gc_control',
+    flag_value = True,
+    default = True,
     help = (
-        'Fraction of data used for validation. '
-        'Default: 0.10'
+        'Regresses out effect of GC content on sequence score.'
+        'Default: GC control is enabled'
+    )
+)
+@click.option(
+    '--nogc',
+    'gc_control',
+    flag_value = False,
+    default = True,
+    help = (
+        'Disables GC control. See --gc.'
+        'Default: GC control is enabled'
     )
 )
 # Motif parameters
@@ -285,6 +513,63 @@ def generate_positional_conv_model(
     help = (
         'Prefix motif names with this string.'
         'Default: denovo_motif_'
+    )
+)
+@click.option(
+    '--shifts',
+    'profile_shift',
+    type = int,
+    default = 0,
+    help = (
+        'Make motifs learn from '
+        'shifted versions of the profile. '
+        'The profile will be shifted within the range of +/- profile_shift.'
+        'The final number of motifs will be num_motifs * (2*profile_shift + 1).'
+        'Default: Do not shift (0)'
+    )
+)
+# Masking parameters
+@click.option(
+    '--mask-motifs',
+    'mask_motifs_filepath',
+    type = str,
+    default = None,
+    help = (
+        'File of motifs to mask out of the dataset, '
+        'in JASPAR format.'
+    )
+)
+@click.option(
+    '--mask-motifs-list',
+    'mask_motifs_list_filepath',
+    type = str,
+    default = None,
+    help = (
+        'File of motif ids for motifs to mask out of the dataset, '
+        'one motif id per line. '
+        'Use to mask only the listed motifs from mask_motifs_filepath, '
+        'retaining the rest. '
+        'Default: use all motifs from mask_motifs_filepath'
+    )
+)
+@click.option(
+    '--mask-pcount',
+    'mask_motif_pseudocount',
+    type = float,
+    default = 0.1,
+    help = (
+        'Pseudocount for setting masked motif match threshold via MOODS. '
+        'Default: 0.1'
+    )
+)
+@click.option(
+    '--mask-pval',
+    'mask_motif_pvalue',
+    type = float,
+    default = 0.05,
+    help = (
+        'P-value for setting motif match threshold via MOODS. '
+        'Default: 0.001'
     )
 )
 # Model parameters
@@ -382,11 +667,18 @@ def main(
     degenerate_pct_thresh = 100.0,
     batch_size = 1000,
     validation_fraction = 0.10,
+    gc_control = True,
     # Motif parameters
     num_motifs = 320,
     motif_length = 8,
     orientation = '+',
     motif_prefix = 'positional_denovo_motif_',
+    profile_shift = 0,
+    # Masking parameters
+    mask_motifs_filepath = None,
+    mask_motifs_list_filepath = None,
+    mask_motif_pseudocount = 0.0001,
+    mask_motif_pvalue = 0.0001,
     # Model parameters
     seed = 10,
     # Training parameters
@@ -441,15 +733,126 @@ def main(
                 degenerate_pct_thresh = degenerate_pct_thresh
             )
         )
+        
+        # Mask motifs, if applicable
+        if mask_motifs_filepath != None:
+            mask_motif_matrix_dict_ = (
+                motif_matrix_filepath_to_dicts(
+                    mask_motifs_filepath
+                )[0]
+            )
+            
+            mask_motifs_list = [k for k in mask_motif_matrix_dict_.keys()]
+            if mask_motifs_list_filepath != None:
+                with open(mask_motifs_list_filepath) as f:
+                    mask_motifs_list_raw = [
+                        l.strip() 
+                        for l 
+                        in f.readlines()
+                    ]
+                    mask_motifs_list_filtered = list(
+                        set(mask_motifs_list) & 
+                        set(mask_motifs_list_raw)
+                    )
+                    mask_motifs_list = mask_motifs_list_filtered
+            
+            mask_motif_matrix_dict = {
+                k: v
+                for k, v
+                in mask_motif_matrix_dict_.items()
+                if k in mask_motifs_list
+            }
+            
+            num_mask_motifs = len(list(mask_motif_matrix_dict.keys()))
+            print(f'Masking out {num_mask_motifs} motif(s)')
+            if num_mask_motifs > 0:
+                scored_fasta_df = mask_scored_fasta_df(
+                    scored_fasta_df,
+                    mask_motif_matrix_dict,
+                    mask_motif_pseudocount = mask_motif_pseudocount,
+                    mask_motif_pvalue = mask_motif_pvalue,
+                    n_jobs = n_jobs
+                )
+            
+        
         # Normalize scores
         scored_fasta_df['original_score'] = scored_fasta_df['score']
         
         scored_fasta_df['z_score'] = (
-            (scored_fasta_df['original_score'] - scored_fasta_df['original_score'].mean()) /
-            (scored_fasta_df['original_score'].std())
+            (
+                scored_fasta_df['original_score'] - 
+                scored_fasta_df['original_score'].mean()
+            ) /
+            (
+                scored_fasta_df['original_score'].std()
+            )
         )
         
         scored_fasta_df['score'] = scored_fasta_df['z_score']
+        
+        # Control GC
+        print(f'gc_control = {gc_control}')
+        if gc_control:
+            scored_fasta_df['gc_ratio'] = (
+                (
+                    scored_fasta_df['sequence']
+                    .map(seq_to_gc)
+                ) /
+                (
+                    scored_fasta_df['sequence']
+                    .map(len)
+                    .astype(float)
+                )
+            )
+            
+            scored_fasta_df['z_gc_ratio'] = (
+                (
+                    scored_fasta_df['gc_ratio'] - 
+                    scored_fasta_df['gc_ratio'].mean()
+                ) /
+                (
+                    scored_fasta_df['gc_ratio'].std()
+                )
+            )
+            
+            (
+                gc_model_slope, 
+                gc_model_intercept, 
+                gc_model_r_value, 
+                gc_model_p_value, 
+                gc_model_std_err
+            ) = linregress(
+                scored_fasta_df['z_gc_ratio'],
+                scored_fasta_df['score']
+            )
+            
+            scored_fasta_df['predicted_score_from_gc_ratio'] = (
+                (
+                    scored_fasta_df['z_gc_ratio'] * 
+                    gc_model_slope
+                ) +
+                gc_model_intercept
+            )
+            
+            scored_fasta_df['residual_score_from_gc_ratio'] = (
+                scored_fasta_df['score'] -
+                scored_fasta_df['predicted_score_from_gc_ratio']
+            )
+            
+            scored_fasta_df['z_residual_score_from_gc_ratio'] = (
+                (
+                    scored_fasta_df['residual_score_from_gc_ratio'] - 
+                    scored_fasta_df['residual_score_from_gc_ratio'].mean()
+                ) /
+                (
+                    scored_fasta_df['residual_score_from_gc_ratio'].std()
+                )
+            )
+            
+            scored_fasta_df['score'] = (
+                scored_fasta_df['z_residual_score_from_gc_ratio']
+            )
+        
         
         # Write filtered data to file
         scored_fasta_df.to_csv(
@@ -524,13 +927,37 @@ def main(
         )
         
         # Extract positional profile to scale with scores
-        positional_r_vec = tf.constant(profile_df['profile'])
-        positional_profile = positional_r_vec
+        positional_profile = tf.constant(profile_df['profile'])
+        # positional_r_vec = tf.constant(profile_df['profile'])
+        # positional_profile = positional_r_vec
+        
+        # Shift profiles to increase motif diversity
+        if profile_shift > 0:
+            print('Shift profiles')
+            (
+                positional_profiles, 
+                profile_df,
+                num_shifted_profiles,
+                offset_profile_cols
+            ) = get_shifted_positional_profiles(
+                profile_df, 
+                num_motifs,
+                -profile_shift,
+                profile_shift
+            )
+            print(f'num_motifs = {num_motifs}')
+            positional_profile = positional_profiles
+            num_motifs = positional_profile.shape[-1]
+            print(f'num_motifs = {num_motifs}')
+        print(f'profile_shift = {profile_shift}')
+        print('Profile shape:')
+        print(positional_profile.shape)
         
         # Create dataset
         original_dataset = scored_fasta_df_to_dataset(
             padded_scored_fasta_df,
             batch_size = batch_size,
+            convert_masked_seq = convert_masked_seq_with_underscores,
             n_jobs = 1
         )
 
@@ -562,15 +989,15 @@ def main(
         save_dataset(dataset, dataset_filepath)
 
         # Split dataset into validation and training
-        validation_dataset = (
-            positionalize_dataset_scores(
-                reformat_dataset(
-                    load_dataset(dataset_filepath)
-                ), 
-                positional_profile
-            )
-            .take(num_validation_batches) 
-        )
+        # validation_dataset = (
+        #     positionalize_dataset_scores(
+        #         reformat_dataset(
+        #             load_dataset(dataset_filepath)
+        #         ), 
+        #         positional_profile
+        #     )
+        #     .take(num_validation_batches) 
+        # )
         training_dataset = (
             positionalize_dataset_scores(
                 reformat_dataset(
@@ -583,7 +1010,12 @@ def main(
        
         # Determine input layer properties
         sequences, scores = (
-            reformat_dataset(load_dataset(dataset_filepath))
+            positionalize_dataset_scores(
+                reformat_dataset(
+                    load_dataset(dataset_filepath)
+                ),
+                positional_profile
+            )
             .take(1)
             .get_single_element()
         )
@@ -611,24 +1043,35 @@ def main(
             motif_margin,
             unstranded
         )
-
+        
+        # Print model summaries
+        print('model summary')
+        model.summary()
+        print('conv_model summary')
+        conv_model.summary()
+        print('post_conv_model summary')
+        post_conv_model.summary()
+        
+        # Print score dimension
+        print(scores.shape)
+        
         # Get model output dimensions
         num_model_output_dims = len(list(model.layers[-1].output_shape))
         num_score_dims = len(list(scores.shape))
 
         # Match model output dimensions
         for i in list(range(num_model_output_dims-num_score_dims)):
-            validation_dataset = validation_dataset.map(
-                lambda sequence, score: (sequence, tf.expand_dims(score, -1)), 
-                num_parallel_calls=tf.data.AUTOTUNE
-            )
+            # validation_dataset = validation_dataset.map(
+            #     lambda sequence, score: (sequence, tf.expand_dims(score, -1)), 
+            #     num_parallel_calls=tf.data.AUTOTUNE
+            # )
             training_dataset = training_dataset.map(
                 lambda sequence, score: (sequence, tf.expand_dims(score, -1)), 
                 num_parallel_calls=tf.data.AUTOTUNE
             )
 
 
-        validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE).cache()
+        # validation_dataset = validation_dataset.prefetch(tf.data.AUTOTUNE).cache()
         training_dataset = training_dataset.prefetch(tf.data.AUTOTUNE).cache()
 
         # Train model

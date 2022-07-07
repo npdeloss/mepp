@@ -37,8 +37,11 @@ from .utils import (
 from .plot import motif_matrix_to_df
 from .html import get_logo_df
 from .io import motif_matrix_file_to_dicts
+
 from .html import motif_matrix_to_logo_data_uri
 from itertools import combinations
+
+
 
 def revcomp_augment_dataset(dataset, batch_size = 1000, random_seed = 10):
     rng = np.random.default_rng(random_seed)
@@ -477,8 +480,14 @@ def filter_motifs_by_information_content(motifs, information_matrices, min_infor
     ])
 
 def motifs_to_dict(motifs, motif_prefix = 'denovo_motif_'):
+    zfill_length = len(str(max([
+        i+1 
+        for i, motif 
+        in enumerate(motifs)
+    ])))
+    zfill_idx = lambda idx: str(idx).zfill(zfill_length)
     motif_matrix_dict = {
-        f'{motif_prefix}{i+1}':motif.T 
+        f'{motif_prefix}{zfill_idx(i+1)}':motif.T 
         for i, motif 
         in enumerate(motifs)
     }

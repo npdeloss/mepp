@@ -446,6 +446,7 @@ from .mepp import run_mepp
     '--non-thoroughmt',
     'thorough_mt',
     flag_value = False,
+    default = True,
     help = (
         'Disables thorough multiple testing '
         'of positional correlation p-values: '
