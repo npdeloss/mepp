@@ -12,6 +12,8 @@ from contextlib import redirect_stdout
 import pandas as pd
 import numpy as np
 
+import random
+
 import tensorflow as tf
 import tensorflow.keras as keras
 
@@ -272,7 +274,7 @@ def generate_positional_conv_model(
     post_conv_model = keras.Sequential([
         input_layer,
         chosen_conv_model,
-        keras.layers.Dropout(0.1),
+        keras.layers.Dropout(0.1, seed = seed + 2),
         keras.layers.AveragePooling1D(
             pool_size, 
             strides = 1
@@ -377,7 +379,7 @@ def get_shifted_positional_profiles(
     required = True,
     help = (
         'Path to a tab-separated text file '
-        'with two columns: position, and profile'
+        'with two columns labeled "position" and "profile"'
         'describing positions along a sequence '
         'and the target profile for enriching a motif '
         'at those positions. '
@@ -692,6 +694,11 @@ def main(
     quiet = False
 ):
     with redirect_stdout(sys.stderr):
+        # Set random seeds
+        random.seed(seed)
+        np.random.seed(seed)
+        tf.random.set_seed(seed)
+        
         # Setup output
 
         filtered_data_df_tsv_filepath = normpath(f'{out_filepath}/filtered_data_df.tsv')
